@@ -89,4 +89,34 @@ def analysis_df():
     data.insert(len(data.keys()),'y_anx',y_anx)
     data.insert(len(data.keys()),'y_sts',y_sts)
     
+    data
+    
     return data
+
+def show_data(data):
+    # showing the dsa data
+    # creating a subplot
+    fig, ax = plt.subplots(nrows=1, ncols=3,figsize=(20,5))
+    
+    patology = ['Depression','Anxiety','Stress']
+    col = ['b','g','purple']
+
+    # plotting in each subplot
+    for i in range(3):
+        ax[i].hist(data['y_dep'],range=(0,4.5),bins=9,\
+                        histtype='step',orientation='horizontal',align='left',color=col[i])
+        ax[i].set_xlabel('# of cases')
+        ax[i].set_ylabel(patology[i]+' levels')
+        ax[i].set_title(patology[i]+' hist')
+        ax[i].text(1000, -0.05, 'Normal', c='r')
+        ax[i].text(1000, 0.95, 'Mild', c='r')
+        ax[i].text(1000, 1.95, 'Moderate', c='r')
+        ax[i].text(1000, 2.95, 'Severe', c='r')
+        ax[i].text(1000, 3.95, 'Extremely Severe', c='r')
+
+    plt.show()
+    
+    # plotting correlation matrix
+    corr_matrix = data[index_q()].corr()
+    sns.set(rc={'figure.figsize':(30,30)})
+    sns.heatmap(data=corr_matrix,annot=True)
