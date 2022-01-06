@@ -99,11 +99,12 @@ def show_data(data):
     fig, ax = plt.subplots(nrows=1, ncols=3,figsize=(20,5))
     
     patology = ['Depression','Anxiety','Stress']
+    pat = ['dep','anx','sts']
     col = ['b','g','purple']
 
     # plotting in each subplot
     for i in range(3):
-        ax[i].hist(data['y_dep'],range=(0,4.5),bins=9,\
+        ax[i].hist(data['y_'+pat[i]],range=(0,4.5),bins=9,\
                         histtype='step',orientation='horizontal',align='left',color=col[i])
         ax[i].set_xlabel('# of cases')
         ax[i].set_ylabel(patology[i]+' levels')
@@ -118,5 +119,131 @@ def show_data(data):
     
     # plotting correlation matrix
     corr_matrix = data[index_q()].corr()
-    sns.set(rc={'figure.figsize':(30,30)})
+    sns.set(rc={'figure.figsize':(20,20)})
     sns.heatmap(data=corr_matrix,annot=True)
+
+def find_best_cut(y_test_predict,Y_test):
+    patology = ['Depression','Anxiety','Stress']
+    best_cut = []
+    print('The best cuts and the performances')
+    for C in range(3):
+        cut = 0.01
+        perf = []
+        for m in range(90):
+            k = 0 
+            y_lin_reg = []
+            for i in range(len(y_test_predict[:,C])):
+                if(y_test_predict[i,C]-int(y_test_predict[i,C]) < cut):
+                    y_lin_reg.append(int(y_test_predict[i,C]))
+                else:
+                    y_lin_reg.append(int(y_test_predict[i,C]+1))
+                if(y_lin_reg[i] == Y_test.iat[i,C]):
+                    k += 1
+
+            perf.append(k/len(y_test_predict[:,C]))
+            cut = cut + 0.01
+        # best cuts e performances
+        print('- '+patology[C])
+        print(((perf.index(max(perf))+1)/10),max(perf))
+        best_cut.append((perf.index(max(perf))+1)/10)
+        
+    return best_cut
+
+    
+def linear_regression(data):
+    # usefull tools
+    import numpy as np
+    from sklearn.model_selection import train_test_split
+    from sklearn.linear_model import LinearRegression
+    from sklearn.metrics import mean_squared_error, r2_score
+
+    # creating the X and Y dataframes
+    X = data[index_q()]
+    Y = data[['y_dep','y_anx','y_sts']]
+    
+    # splits the training and test data set in 80% : 20%
+    # assign random_state to any value.This ensures consistency.
+    X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size = 0.2, random_state=5)
+    print('X, Y train/test shape')
+    print(X_train.shape)
+    print(X_test.shape)
+    print(Y_train.shape)
+    print(Y_test.shape)
+    print("\n")
+    
+    lin_model = LinearRegression()
+    lin_model.fit(X_train, Y_train)
+
+    # model evaluation for training set
+
+    y_train_predict = lin_model.predict(X_train)
+    rmse = (np.sqrt(mean_squared_error(Y_train, y_train_predict)))
+    r2 = r2_score(Y_train, y_train_predict)
+
+    print("The model performance for training set")
+    print("--------------------------------------")
+    print('RMSE is {}'.format(rmse))
+    print('R2 score is {}'.format(r2))
+    print("\n")
+
+    # model evaluation for testing set
+
+    y_test_predict = lin_model.predict(X_test)
+    # root mean square error of the model
+    rmse = (np.sqrt(mean_squared_error(Y_test, y_test_predict)))
+
+    # r-squared score of the model
+    r2 = r2_score(Y_test, y_test_predict)
+
+    print("The model performance for testing set")
+    print("--------------------------------------")
+    print('RMSE is {}'.format(rmse))
+    print('R2 score is {}'.format(r2))
+    print("\n")
+    
+    best_cut = find_best_cut(y_test_predict,Y_test)
+    
+    #print(best_cut)
+    
+    # using the best cuts
+    lin_reg = pd.DataFrame()
+    pat_index = ['y_dep','y_anx','y_sts']
+    m = 0
+    for m in range(3):
+        y_lin_reg = []
+        for i in range(len(y_test_predict[:,m])):
+            if(y_test_predict[i,m]-int(y_test_predict[i,m]) < best_cut[m]):
+                y_lin_reg.append(int(y_test_predict[i,m]))
+            else:
+                y_lin_reg.append(int(y_test_predict[i,m]+1))
+
+        if m == 0:
+            lin_reg.insert(m,pat_index[m],y_lin_reg)
+        if m == 1:
+            lin_reg.insert(m,pat_index[m],y_lin_reg)
+        if m == 2:
+            lin_reg.insert(m,pat_index[m],y_lin_reg)
+            
+    fig, ax2 = plt.subplots(nrows=1, ncols=3,figsize=(20,5))
+    
+    #plotting results
+    patology = ['Depression','Anxiety','Stress']
+    pat_index = ['y_dep','y_anx','y_sts']
+    col = ['b','g','purple']
+
+    # plotting in each subplot
+    for i in range(3):
+        ax2[i].hist(lin_reg[pat_index[i]],range=(0,4.5),bins=9,\
+                        histtype='step',orientation='horizontal',align='left',color=col[i])
+        ax2[i].hist(Y_test[pat_index[i]],range=(0,4.5),bins=9,\
+                            histtype='step',orientation='horizontal',align='left',color='r')
+        ax2[i].set_xlabel('# of cases')
+        ax2[i].set_ylabel(patology[i]+' levels')
+        ax2[i].set_title(patology[i]+' hist')
+        ax2[i].text(100, -0.05, 'Normal', c='r')
+        ax2[i].text(100, 0.95, 'Mild', c='r')
+        ax2[i].text(100, 1.95, 'Moderate', c='r')
+        ax2[i].text(100, 2.95, 'Severe', c='r')
+        ax2[i].text(100, 3.95, 'Extremely Severe', c='r')
+
+    plt.show()
