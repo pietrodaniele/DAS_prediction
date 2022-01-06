@@ -118,9 +118,9 @@ def show_data(data):
     plt.show()
     
     # plotting correlation matrix
-    corr_matrix = data[index_q()].corr()
-    sns.set(rc={'figure.figsize':(20,20)})
-    sns.heatmap(data=corr_matrix,annot=True)
+    #corr_matrix = data[index_q()].corr()
+    #sns.set(rc={'figure.figsize':(30,30)})
+    #sns.heatmap(data=corr_matrix,annot=True)
 
 def find_best_cut(y_test_predict,Y_test):
     patology = ['Depression','Anxiety','Stress']
@@ -234,9 +234,9 @@ def linear_regression(data):
     # plotting in each subplot
     for i in range(3):
         ax2[i].hist(lin_reg[pat_index[i]],range=(0,4.5),bins=9,\
-                        histtype='step',orientation='horizontal',align='left',color=col[i])
+                        histtype='step',orientation='horizontal',align='left',color='grey',label='Y_pred')
         ax2[i].hist(Y_test[pat_index[i]],range=(0,4.5),bins=9,\
-                            histtype='step',orientation='horizontal',align='left',color='r')
+                            histtype='step',orientation='horizontal',align='left',color=col[i],label='Y_test')
         ax2[i].set_xlabel('# of cases')
         ax2[i].set_ylabel(patology[i]+' levels')
         ax2[i].set_title(patology[i]+' hist')
@@ -245,5 +245,6 @@ def linear_regression(data):
         ax2[i].text(100, 1.95, 'Moderate', c='r')
         ax2[i].text(100, 2.95, 'Severe', c='r')
         ax2[i].text(100, 3.95, 'Extremely Severe', c='r')
+        ax2[i].legend()
 
     plt.show()
