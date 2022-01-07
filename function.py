@@ -125,10 +125,18 @@ def show_data(data):
 def find_best_cut(y_test_predict,Y_test):
     patology = ['Depression','Anxiety','Stress']
     best_cut = []
+    # plotting perf(cut)
+    fig, ax2 = plt.subplots(nrows=1, ncols=3,figsize=(20,5))
+    
+    patology = ['Depression','Anxiety','Stress']
+    pat_index = ['y_dep','y_anx','y_sts']
+    col = ['b','g','purple']
+    
     print('The best cuts and the performances')
     for C in range(3):
         cut = 0.01
         perf = []
+        cut_array = []
         for m in range(90):
             k = 0 
             y_lin_reg = []
@@ -139,23 +147,34 @@ def find_best_cut(y_test_predict,Y_test):
                     y_lin_reg.append(int(y_test_predict[i,C]+1))
                 if(y_lin_reg[i] == Y_test.iat[i,C]):
                     k += 1
-
+            
+            cut_array.append(cut)
             perf.append(k/len(y_test_predict[:,C]))
             cut = cut + 0.01
+            
+        ax2[C].plot(cut_array,perf,color=col[C],label='Perf')
+        ax2[C].set_xlabel('Cut')
+        ax2[C].set_ylabel('Performance')
+        ax2[C].set_title(patology[C]+' classfication perf.')
+        ax2[C].legend()
+        
         # best cuts e performances
         print('- '+patology[C])
-        print(((perf.index(max(perf))+1)/10),max(perf))
-        best_cut.append((perf.index(max(perf))+1)/10)
-        
+        print(((perf.index(max(perf))+1)/100),max(perf))
+        best_cut.append((perf.index(max(perf))+1)/100)
+    
+    acc = sum(perf)/len(perf)
+    print("\n")
+    print(f"The model accuracy = {acc}")
+    plt.show()
     return best_cut
-
     
 def linear_regression(data):
     # usefull tools
     import numpy as np
     from sklearn.model_selection import train_test_split
     from sklearn.linear_model import LinearRegression
-    from sklearn.metrics import mean_squared_error, r2_score
+    from sklearn.metrics import mean_squared_error, r2_score, accuracy_score
 
     # creating the X and Y dataframes
     X = data[index_q()]
@@ -194,7 +213,7 @@ def linear_regression(data):
 
     # r-squared score of the model
     r2 = r2_score(Y_test, y_test_predict)
-
+    
     print("The model performance for testing set")
     print("--------------------------------------")
     print('RMSE is {}'.format(rmse))
