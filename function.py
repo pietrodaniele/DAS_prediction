@@ -1,6 +1,13 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
+from sklearn.metrics import mean_squared_error, r2_score, accuracy_score
+# usefull tools
+import numpy as np
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LinearRegression
+from sklearn.naive_bayes import GaussianNB
+    
 
 def reading_file(FILENAME):
     data = pd.read_csv(FILENAME)
@@ -13,6 +20,26 @@ def index_q():
         index_question.append('Q'+str(i+1)+'A')
             
     return index_question
+
+def train_test_splitting(data,percent):
+    # lib
+    from sklearn.model_selection import train_test_split
+    
+    # creating the X and Y dataframes
+    X = data[index_q()]
+    Y = data[['y_dep','y_anx','y_sts']]
+    
+    # splits the training and test data set in 80% : 20%
+    # assign random_state to any value.This ensures consistency.
+    X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size = percent, random_state=5)
+    print('X, Y train/test shape')
+    print(X_train.shape)
+    print(X_test.shape)
+    print(Y_train.shape)
+    print(Y_test.shape)
+    print("\n")
+    
+    return X_train, X_test, Y_train, Y_test
 
 def index_usefull():
     index = index_q()
@@ -145,11 +172,11 @@ def find_best_cut(y_test_predict,Y_test):
                     y_lin_reg.append(int(y_test_predict[i,C]))
                 else:
                     y_lin_reg.append(int(y_test_predict[i,C]+1))
-                if(y_lin_reg[i] == Y_test.iat[i,C]):
-                    k += 1
+                #if(y_lin_reg[i] == Y_test.iat[i,C]):
+                #    k += 1
             
             cut_array.append(cut)
-            perf.append(k/len(y_test_predict[:,C]))
+            perf.append(accuracy_score(y_lin_reg,Y_test[pat_index[C]]))
             cut = cut + 0.01
             
         ax2[C].plot(cut_array,perf,color=col[C],label='Perf')
@@ -169,27 +196,7 @@ def find_best_cut(y_test_predict,Y_test):
     plt.show()
     return best_cut
     
-def linear_regression(data):
-    # usefull tools
-    import numpy as np
-    from sklearn.model_selection import train_test_split
-    from sklearn.linear_model import LinearRegression
-    from sklearn.metrics import mean_squared_error, r2_score, accuracy_score
-
-    # creating the X and Y dataframes
-    X = data[index_q()]
-    Y = data[['y_dep','y_anx','y_sts']]
-    
-    # splits the training and test data set in 80% : 20%
-    # assign random_state to any value.This ensures consistency.
-    X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size = 0.2, random_state=5)
-    print('X, Y train/test shape')
-    print(X_train.shape)
-    print(X_test.shape)
-    print(Y_train.shape)
-    print(Y_test.shape)
-    print("\n")
-    
+def linear_regression(data, X_train, X_test, Y_train, Y_test):
     lin_model = LinearRegression()
     lin_model.fit(X_train, Y_train)
 
@@ -267,3 +274,78 @@ def linear_regression(data):
         ax2[i].legend()
 
     plt.show()
+    
+    return lin_reg
+
+def GNB_classification(X_train, X_test, Y_train, Y_test):
+    gnb = GaussianNB()
+
+    y_pat = ['y_dep','y_anx','y_sts']
+    acc = []
+    Y_pred = pd.DataFrame()
+    for i in range(3):
+        print('* '+y_pat[i])
+        print('\n')
+        
+        gnb.fit(X_train, np.ravel(Y_train[[y_pat[i]]])) # using ravel in order to pass a 1D array (not a 1D colum)
+        
+        # model evaluation for training set
+        y_train_predict = gnb.predict(X_train)
+        rmse = (np.sqrt(mean_squared_error(Y_train[[y_pat[i]]], y_train_predict)))
+        r2 = r2_score(Y_train[[y_pat[i]]], y_train_predict)
+
+        print("The model performance for training set")
+        print("--------------------------------------")
+        print('RMSE is {}'.format(rmse))
+        print('R2 score is {}'.format(r2))
+        print("\n")
+
+        # model evaluation for testing set
+
+        y_test_predict = gnb.predict(X_test)
+        # root mean square error of the model
+        rmse = (np.sqrt(mean_squared_error(Y_test[[y_pat[i]]], y_test_predict)))
+
+        # r-squared score of the model
+        r2 = r2_score(Y_test[[y_pat[i]]], y_test_predict)
+
+        print("The model performance for testing set")
+        print("--------------------------------------")
+        print('RMSE is {}'.format(rmse))
+        print('R2 score is {}'.format(r2))
+        print("\n")
+        Y_pred.insert(i,y_pat[i],y_test_predict)
+        acc.append(accuracy_score(Y_test[[y_pat[i]]],Y_pred[[y_pat[i]]]))
+        print(acc[i])
+        print('######################################')
+        print("\n")
+        
+    
+    print(f"The model accuracy = {sum(acc)/len(acc)}")
+    
+    fig, ax2 = plt.subplots(nrows=1, ncols=3,figsize=(20,5))
+    
+    #plotting results
+    patology = ['Depression','Anxiety','Stress']
+    pat_index = ['y_dep','y_anx','y_sts']
+    col = ['b','g','purple']
+
+    # plotting in each subplot
+    for i in range(3):
+        ax2[i].hist(Y_pred[pat_index[i]],range=(0,4.5),bins=9,\
+                            histtype='step',orientation='horizontal',align='left',color='grey',label='Y_pred')
+        ax2[i].hist(Y_test[pat_index[i]],range=(0,4.5),bins=9,\
+                                histtype='step',orientation='horizontal',align='left',color=col[i],label='Y_test')
+        ax2[i].set_xlabel('# of cases')
+        ax2[i].set_ylabel(patology[i]+' levels')
+        ax2[i].set_title(patology[i]+' hist')
+        ax2[i].text(100, -0.05, 'Normal', c='r')
+        ax2[i].text(100, 0.95, 'Mild', c='r')
+        ax2[i].text(100, 1.95, 'Moderate', c='r')
+        ax2[i].text(100, 2.95, 'Severe', c='r')
+        ax2[i].text(100, 3.95, 'Extremely Severe', c='r')
+        ax2[i].legend()
+
+    plt.show()
+    
+    return Y_pred
