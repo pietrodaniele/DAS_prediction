@@ -7,6 +7,7 @@ import numpy as np
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
 from sklearn.naive_bayes import GaussianNB
+from sklearn.neighbors import KNeighborsClassifier
     
 
 def reading_file(FILENAME):
@@ -303,6 +304,79 @@ def GNB_classification(X_train, X_test, Y_train, Y_test):
         # model evaluation for testing set
 
         y_test_predict = gnb.predict(X_test)
+        # root mean square error of the model
+        rmse = (np.sqrt(mean_squared_error(Y_test[[y_pat[i]]], y_test_predict)))
+
+        # r-squared score of the model
+        r2 = r2_score(Y_test[[y_pat[i]]], y_test_predict)
+
+        print("The model performance for testing set")
+        print("--------------------------------------")
+        print('RMSE is {}'.format(rmse))
+        print('R2 score is {}'.format(r2))
+        print("\n")
+        Y_pred.insert(i,y_pat[i],y_test_predict)
+        acc.append(accuracy_score(Y_test[[y_pat[i]]],Y_pred[[y_pat[i]]]))
+        print(acc[i])
+        print('######################################')
+        print("\n")
+        
+    
+    print(f"The model accuracy = {sum(acc)/len(acc)}")
+    
+    fig, ax2 = plt.subplots(nrows=1, ncols=3,figsize=(20,5))
+    
+    #plotting results
+    patology = ['Depression','Anxiety','Stress']
+    pat_index = ['y_dep','y_anx','y_sts']
+    col = ['b','g','purple']
+
+    # plotting in each subplot
+    for i in range(3):
+        ax2[i].hist(Y_pred[pat_index[i]],range=(0,4.5),bins=9,\
+                            histtype='step',orientation='horizontal',align='left',color='grey',label='Y_pred')
+        ax2[i].hist(Y_test[pat_index[i]],range=(0,4.5),bins=9,\
+                                histtype='step',orientation='horizontal',align='left',color=col[i],label='Y_test')
+        ax2[i].set_xlabel('# of cases')
+        ax2[i].set_ylabel(patology[i]+' levels')
+        ax2[i].set_title(patology[i]+' hist')
+        ax2[i].text(100, -0.05, 'Normal', c='r')
+        ax2[i].text(100, 0.95, 'Mild', c='r')
+        ax2[i].text(100, 1.95, 'Moderate', c='r')
+        ax2[i].text(100, 2.95, 'Severe', c='r')
+        ax2[i].text(100, 3.95, 'Extremely Severe', c='r')
+        ax2[i].legend()
+
+    plt.show()
+    
+    return Y_pred
+
+def KNN_classification(X_train, X_test, Y_train, Y_test):
+    clf = KNeighborsClassifier(n_neighbors=3,algorithm='ball_tree')
+
+    y_pat = ['y_dep','y_anx','y_sts']
+    acc = []
+    Y_pred = pd.DataFrame()
+    for i in range(3):
+        print('* '+y_pat[i])
+        print('\n')
+        
+        clf.fit(X_train, np.ravel(Y_train[[y_pat[i]]])) # using ravel in order to pass a 1D array (not a 1D colum)
+        
+        # model evaluation for training set
+        y_train_predict = clf.predict(X_train)
+        rmse = (np.sqrt(mean_squared_error(Y_train[[y_pat[i]]], y_train_predict)))
+        r2 = r2_score(Y_train[[y_pat[i]]], y_train_predict)
+
+        print("The model performance for training set")
+        print("--------------------------------------")
+        print('RMSE is {}'.format(rmse))
+        print('R2 score is {}'.format(r2))
+        print("\n")
+
+        # model evaluation for testing set
+
+        y_test_predict = clf.predict(X_test)
         # root mean square error of the model
         rmse = (np.sqrt(mean_squared_error(Y_test[[y_pat[i]]], y_test_predict)))
 
