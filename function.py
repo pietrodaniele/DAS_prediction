@@ -196,16 +196,40 @@ def find_best_cut(y_test_predict,Y_test):
     print(f"The model accuracy = {acc}")
     plt.show()
     return best_cut
+
+def R_to_class(prediction, best_cut):
+    lin_reg = pd.DataFrame()
+    pat_index = ['y_dep','y_anx','y_sts']
+    m = 0
+    for m in range(3):
+        y_lin_reg = []
+        for i in range(len(prediction[:,m])):
+            if(prediction[i,m]-int(prediction[i,m]) < best_cut[m]):
+                y_lin_reg.append(int(prediction[i,m]))
+            else:
+                y_lin_reg.append(int(prediction[i,m]+1))
+
+        if m == 0:
+            lin_reg.insert(m,pat_index[m],y_lin_reg)
+        if m == 1:
+            lin_reg.insert(m,pat_index[m],y_lin_reg)
+        if m == 2:
+            lin_reg.insert(m,pat_index[m],y_lin_reg)
+    
+    return lin_reg
     
 def linear_regression(data, X_train, X_test, Y_train, Y_test):
     lin_model = LinearRegression()
     lin_model.fit(X_train, Y_train)
 
     # model evaluation for training set
-
+    print("* Training")
+    print("\n")
     y_train_predict = lin_model.predict(X_train)
-    rmse = (np.sqrt(mean_squared_error(Y_train, y_train_predict)))
-    r2 = r2_score(Y_train, y_train_predict)
+    best_cut_train = find_best_cut(y_train_predict,Y_train)
+    y_train_class = R_to_class(y_train_predict,best_cut_train)
+    rmse = (np.sqrt(mean_squared_error(Y_train, y_train_class)))
+    r2 = r2_score(Y_train, y_train_class)
 
     print("The model performance for training set")
     print("--------------------------------------")
@@ -214,42 +238,22 @@ def linear_regression(data, X_train, X_test, Y_train, Y_test):
     print("\n")
 
     # model evaluation for testing set
-
+    print("* Test")
+    print("\n")
     y_test_predict = lin_model.predict(X_test)
+    best_cut = find_best_cut(y_test_predict,Y_test)
+    y_test_class = R_to_class(y_test_predict,best_cut)
     # root mean square error of the model
-    rmse = (np.sqrt(mean_squared_error(Y_test, y_test_predict)))
+    rmse = (np.sqrt(mean_squared_error(Y_test, y_test_class)))
 
     # r-squared score of the model
-    r2 = r2_score(Y_test, y_test_predict)
+    r2 = r2_score(Y_test, y_test_class)
     
     print("The model performance for testing set")
     print("--------------------------------------")
     print('RMSE is {}'.format(rmse))
     print('R2 score is {}'.format(r2))
     print("\n")
-    
-    best_cut = find_best_cut(y_test_predict,Y_test)
-    
-    #print(best_cut)
-    
-    # using the best cuts
-    lin_reg = pd.DataFrame()
-    pat_index = ['y_dep','y_anx','y_sts']
-    m = 0
-    for m in range(3):
-        y_lin_reg = []
-        for i in range(len(y_test_predict[:,m])):
-            if(y_test_predict[i,m]-int(y_test_predict[i,m]) < best_cut[m]):
-                y_lin_reg.append(int(y_test_predict[i,m]))
-            else:
-                y_lin_reg.append(int(y_test_predict[i,m]+1))
-
-        if m == 0:
-            lin_reg.insert(m,pat_index[m],y_lin_reg)
-        if m == 1:
-            lin_reg.insert(m,pat_index[m],y_lin_reg)
-        if m == 2:
-            lin_reg.insert(m,pat_index[m],y_lin_reg)
             
     fig, ax2 = plt.subplots(nrows=1, ncols=3,figsize=(20,5))
     
@@ -260,7 +264,7 @@ def linear_regression(data, X_train, X_test, Y_train, Y_test):
 
     # plotting in each subplot
     for i in range(3):
-        ax2[i].hist(lin_reg[pat_index[i]],range=(0,4.5),bins=9,\
+        ax2[i].hist(y_test_class[pat_index[i]],range=(0,4.5),bins=9,\
                         histtype='step',orientation='horizontal',align='left',color='grey',label='Y_pred')
         ax2[i].hist(Y_test[pat_index[i]],range=(0,4.5),bins=9,\
                             histtype='step',orientation='horizontal',align='left',color=col[i],label='Y_test')
@@ -276,7 +280,7 @@ def linear_regression(data, X_train, X_test, Y_train, Y_test):
 
     plt.show()
     
-    return lin_reg
+    return y_test_class
 
 def GNB_classification(X_train, X_test, Y_train, Y_test):
     gnb = GaussianNB()
@@ -377,6 +381,78 @@ def KNN_classification(X_train, X_test, Y_train, Y_test):
         # model evaluation for testing set
 
         y_test_predict = clf.predict(X_test)
+        # root mean square error of the model
+        rmse = (np.sqrt(mean_squared_error(Y_test[[y_pat[i]]], y_test_predict)))
+
+        # r-squared score of the model
+        r2 = r2_score(Y_test[[y_pat[i]]], y_test_predict)
+
+        print("The model performance for testing set")
+        print("--------------------------------------")
+        print('RMSE is {}'.format(rmse))
+        print('R2 score is {}'.format(r2))
+        print("\n")
+        Y_pred.insert(i,y_pat[i],y_test_predict)
+        acc.append(accuracy_score(Y_test[[y_pat[i]]],Y_pred[[y_pat[i]]]))
+        print(acc[i])
+        print('######################################')
+        print("\n")
+        
+    
+    print(f"The model accuracy = {sum(acc)/len(acc)}")
+    
+    fig, ax2 = plt.subplots(nrows=1, ncols=3,figsize=(20,5))
+    
+    #plotting results
+    patology = ['Depression','Anxiety','Stress']
+    pat_index = ['y_dep','y_anx','y_sts']
+    col = ['b','g','purple']
+
+    # plotting in each subplot
+    for i in range(3):
+        ax2[i].hist(Y_pred[pat_index[i]],range=(0,4.5),bins=9,\
+                            histtype='step',orientation='horizontal',align='left',color='grey',label='Y_pred')
+        ax2[i].hist(Y_test[pat_index[i]],range=(0,4.5),bins=9,\
+                                histtype='step',orientation='horizontal',align='left',color=col[i],label='Y_test')
+        ax2[i].set_xlabel('# of cases')
+        ax2[i].set_ylabel(patology[i]+' levels')
+        ax2[i].set_title(patology[i]+' hist')
+        ax2[i].text(100, -0.05, 'Normal', c='r')
+        ax2[i].text(100, 0.95, 'Mild', c='r')
+        ax2[i].text(100, 1.95, 'Moderate', c='r')
+        ax2[i].text(100, 2.95, 'Severe', c='r')
+        ax2[i].text(100, 3.95, 'Extremely Severe', c='r')
+        ax2[i].legend()
+
+    plt.show()
+    
+    return Y_pred
+
+def classification(model,X_train, X_test, Y_train, Y_test):
+    # variables
+    y_pat = ['y_dep','y_anx','y_sts']
+    acc = []
+    Y_pred = pd.DataFrame()
+    for i in range(3):
+        print('* '+y_pat[i])
+        print('\n')
+        
+        model.fit(X_train, np.ravel(Y_train[[y_pat[i]]])) # using ravel in order to pass a 1D array (not a 1D colum)
+        
+        # model evaluation for training set
+        y_train_predict = model.predict(X_train)
+        rmse = (np.sqrt(mean_squared_error(Y_train[[y_pat[i]]], y_train_predict)))
+        r2 = r2_score(Y_train[[y_pat[i]]], y_train_predict)
+
+        print("The model performance for training set")
+        print("--------------------------------------")
+        print('RMSE is {}'.format(rmse))
+        print('R2 score is {}'.format(r2))
+        print("\n")
+
+        # model evaluation for testing set
+
+        y_test_predict = model.predict(X_test)
         # root mean square error of the model
         rmse = (np.sqrt(mean_squared_error(Y_test[[y_pat[i]]], y_test_predict)))
 
