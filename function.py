@@ -22,6 +22,28 @@ def index_q():
             
     return index_question
 
+def index_reduction(data,corr_limit):
+    # correlation matrix
+    corr = data[index_q()].corr()
+    
+    index = index_q()
+    index_red = []
+    red = []
+
+    for i in range(len(index)):
+        for j in range(len(index)):
+            if i !=j and corr.iat[i,j] >= corr_limit:
+                red.append(f'Q{j+1}A')
+
+    for i in range(len(index)):
+        k = 0
+        for j in range(len(red)):
+            if index[i] == red[j]:
+                k = 1
+        if k == 0:
+            index_red.append(index[i])
+    return index_red
+
 def train_test_splitting(data,percent):
     # lib
     from sklearn.model_selection import train_test_split
@@ -146,9 +168,10 @@ def show_data(data):
     plt.show()
     
     # plotting correlation matrix
-    #corr_matrix = data[index_q()].corr()
-    #sns.set(rc={'figure.figsize':(30,30)})
-    #sns.heatmap(data=corr_matrix,annot=True)
+    corr_matrix = data[index_q()].corr()
+    corr_matrix.style.background_gradient(cmap='coolwarm')
+    
+    return
 
 def find_best_cut(y_test_predict,Y_test):
     patology = ['Depression','Anxiety','Stress']
@@ -428,7 +451,7 @@ def KNN_classification(X_train, X_test, Y_train, Y_test):
     
     return Y_pred
 
-def classification(model,X_train, X_test, Y_train, Y_test):
+def classification(model,X_train, X_test, Y_train, Y_test, index_T):
     # variables
     y_pat = ['y_dep','y_anx','y_sts']
     acc = []
@@ -437,10 +460,10 @@ def classification(model,X_train, X_test, Y_train, Y_test):
         print('* '+y_pat[i])
         print('\n')
         
-        model.fit(X_train, np.ravel(Y_train[[y_pat[i]]])) # using ravel in order to pass a 1D array (not a 1D colum)
+        model.fit(X_train[index_T[i]], np.ravel(Y_train[[y_pat[i]]])) # using ravel in order to pass a 1D array (not a 1D colum)
         
         # model evaluation for training set
-        y_train_predict = model.predict(X_train)
+        y_train_predict = model.predict(X_train[index_T[i]])
         rmse = (np.sqrt(mean_squared_error(Y_train[[y_pat[i]]], y_train_predict)))
         r2 = r2_score(Y_train[[y_pat[i]]], y_train_predict)
 
@@ -452,7 +475,7 @@ def classification(model,X_train, X_test, Y_train, Y_test):
 
         # model evaluation for testing set
 
-        y_test_predict = model.predict(X_test)
+        y_test_predict = model.predict(X_test[index_T[i]])
         # root mean square error of the model
         rmse = (np.sqrt(mean_squared_error(Y_test[[y_pat[i]]], y_test_predict)))
 
@@ -499,3 +522,37 @@ def classification(model,X_train, X_test, Y_train, Y_test):
     plt.show()
     
     return Y_pred
+
+def error_show(model,data,X_train, X_test, Y_train, Y_test):
+    pat_index = ['y_dep','y_anx','y_sts']
+    fig, ax2 = plt.subplots(nrows=1, ncols=3,figsize=(20,5))
+    for k in range(3):
+        # error
+        error_train = []
+        error_test = []
+        x = []
+        cut = 0.4
+        for i in range(30):
+            index_2 = index_reduction(data,cut)
+            x.append(len(index_2))
+            # fit
+            model.fit(X_train[index_2], np.ravel(Y_train[pat_index[k]]))
+
+            # training
+            y_train_predict = model.predict(X_train[index_2])
+            error_train.append(mean_squared_error(Y_train[pat_index[k]], y_train_predict))
+            # test
+            y_test_predict = model.predict(X_test[index_2])
+            error_test.append(mean_squared_error(Y_test[pat_index[k]], y_test_predict))
+
+            # cut 
+            cut = cut + 0.02
+    
+        ax2[k].plot(x,error_train,label='train')
+        ax2[k].plot(x,error_test,label='test')
+        ax2[k].set_title(f'Training and test errors => '+pat_index[k])  
+        ax2[k].set_xlabel('# of index')
+        ax2[k].set_ylabel('Errors')
+        ax2[k].legend(loc='best')
+        
+    plt.show()
