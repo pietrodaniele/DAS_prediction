@@ -556,3 +556,71 @@ def error_show(model,data,X_train, X_test, Y_train, Y_test):
         ax2[k].legend(loc='best')
         
     plt.show()
+    
+def show_results(Y_test, Y_lin, Y_gbn, Y_log, Y_knn, Y_dt, Y_svm):
+    y_pat = ['y_dep','y_anx','y_sts']
+    patology = ['Depression','Anxiety','Stress']
+    for i in range(3):
+        fig = plt.figure(figsize=(10,8))
+        #histos
+        plt.hist(Y_test[y_pat[i]],range=(0,4.5),bins=9,\
+                            histtype='step',orientation='horizontal',align='left',label='Y_true')
+        plt.hist(Y_lin[y_pat[i]],range=(0,4.5),bins=9,\
+                            histtype='step',orientation='horizontal',align='left',alpha=0.5,label='Y_lin')
+        plt.hist(Y_gbn[y_pat[i]],range=(0,4.5),bins=9,\
+                            histtype='step',orientation='horizontal',align='left',alpha=0.5,label='Y_gbn')
+        plt.hist(Y_log[y_pat[i]],range=(0,4.5),bins=9,\
+                            histtype='step',orientation='horizontal',align='left',alpha=0.5,label='Y_log')
+        plt.hist(Y_knn[y_pat[i]],range=(0,4.5),bins=9,\
+                            histtype='step',orientation='horizontal',align='left',alpha=0.5,label='Y_knn')
+        plt.hist(Y_dt[y_pat[i]],range=(0,4.5),bins=9,\
+                            histtype='step',orientation='horizontal',align='left',alpha=0.5,label='Y_dt')
+        plt.hist(Y_svm[y_pat[i]],range=(0,4.5),bins=9,\
+                            histtype='step',orientation='horizontal',align='left',alpha=0.5,label='Y_svm')
+
+        plt.title(y_pat[i]+' results')
+        plt.xlabel('# of cases')
+        plt.ylabel(patology[i]+' levels')
+        plt.text(100, -0.05, 'Normal', c='r')
+        plt.text(100, 0.95, 'Mild', c='r')
+        plt.text(100, 1.95, 'Moderate', c='r')
+        plt.text(100, 2.95, 'Severe', c='r')
+        plt.text(100, 3.95, 'Extremely Severe', c='r')
+        plt.legend(loc='center right')
+        plt.show()
+       
+    # accuracy depression
+    accuracy_dep = [accuracy_score(Y_test['y_dep'],Y_lin['y_dep']),\
+                    accuracy_score(Y_test['y_dep'],Y_gbn['y_dep']),\
+                    accuracy_score(Y_test['y_dep'],Y_log['y_dep']),\
+                    accuracy_score(Y_test['y_dep'],Y_knn['y_dep']),\
+                    accuracy_score(Y_test['y_dep'],Y_dt['y_dep']),\
+                    accuracy_score(Y_test['y_dep'],Y_svm['y_dep'])]
+    # accuracy anxiety
+    accuracy_anx = [accuracy_score(Y_test['y_anx'],Y_lin['y_anx']),\
+                    accuracy_score(Y_test['y_anx'],Y_gbn['y_anx']),\
+                    accuracy_score(Y_test['y_anx'],Y_log['y_anx']),\
+                    accuracy_score(Y_test['y_anx'],Y_knn['y_anx']),\
+                    accuracy_score(Y_test['y_anx'],Y_dt['y_anx']),\
+                    accuracy_score(Y_test['y_anx'],Y_svm['y_anx'])]
+    # accuracy stress
+    accuracy_sts = [accuracy_score(Y_test['y_sts'],Y_lin['y_sts']),\
+                    accuracy_score(Y_test['y_sts'],Y_gbn['y_sts']),\
+                    accuracy_score(Y_test['y_sts'],Y_log['y_sts']),\
+                    accuracy_score(Y_test['y_sts'],Y_knn['y_sts']),\
+                    accuracy_score(Y_test['y_sts'],Y_dt['y_sts']),\
+                    accuracy_score(Y_test['y_sts'],Y_svm['y_sts'])]
+    # tot accuracy
+    accuracy_tot = []
+    for j in range(len(accuracy_dep)):
+        accuracy_tot.append((accuracy_dep[j]+accuracy_anx[j]+accuracy_sts[j])/3)
+    # results/accuracy dataframe
+    results = pd.DataFrame()
+    results.insert(len(results.keys()),'dep_acc',accuracy_dep)
+    results.insert(len(results.keys()),'anx_acc',accuracy_anx)
+    results.insert(len(results.keys()),'sts_acc',accuracy_sts)
+    results.insert(len(results.keys()),'tot_acc',accuracy_tot)
+
+    results.rename({0:'lin', 1:'GBN', 2:'log', 3:'KNN', 4:'DT', 5:'SVM'}, axis=0, inplace=True)
+    
+    return results
